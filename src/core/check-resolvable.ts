@@ -220,12 +220,7 @@ export function parseResolverEntries(resolverContent: string): ResolverEntry[] {
 /**
  * Simple YAML frontmatter parser — extracts triggers array if present.
  *
- * Normalizes CRLF → LF before parsing so Windows checkouts (where
- * `core.autocrlf=true` is the default) parse correctly. Without this,
- * the `^---\n` and `^triggers:\s*\n` regexes never match because the
- * file content is `---\r\n` / `triggers:\r\n`, and every skill on
- * Windows is reported as `mece_gap` regardless of its actual content.
- * CI runs on Ubuntu-only so the bug only surfaces in user environments.
+ * Normalizes CRLF → LF before parsing so Windows checkouts parse correctly.
  */
 export function extractTriggers(skillContent: string): string[] {
   const content = skillContent.replace(/\r\n/g, '\n');
@@ -236,7 +231,7 @@ export function extractTriggers(skillContent: string): string[] {
   if (!triggersMatch) return [];
   return triggersMatch[1]
     .split('\n')
-    .map(l => l.replace(/^\s+-\s+/, '').replace(/^["']|["']$/g, '').trim())
+    .map(l => l.replace(/^\s+-\s+/, '').replace(/^[\"']|[\"']$/g, '').trim())
     .filter(Boolean);
 }
 
