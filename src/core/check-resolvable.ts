@@ -223,6 +223,7 @@ export function parseResolverEntries(resolverContent: string): ResolverEntry[] {
  *
  * Keeping this compatibility export routed through `parseSkillFrontmatter`
  * prevents doctor gap detection from drifting from the trigger index.
+ * `parseSkillFrontmatter` normalizes CRLF before parsing.
  */
 export function extractTriggers(skillContent: string): string[] {
   return parseSkillFrontmatter(skillContent)?.triggers ?? [];
