@@ -21,8 +21,8 @@
  * only does "row exists + repo is a real dir → render + atomic write".
  */
 
-import { existsSync, statSync, mkdirSync, writeFileSync, renameSync, unlinkSync, readdirSync } from 'fs';
-import { basename, dirname, isAbsolute, join, relative, resolve } from 'path';
+import { existsSync, statSync, mkdirSync, writeFileSync, renameSync, unlinkSync, readdirSync, copyFileSync } from 'fs';
+import { basename, dirname, isAbsolute, join, parse, relative, resolve } from 'path';
 import { randomBytes } from 'crypto';
 import type { BrainEngine } from './engine.ts';
 import { serializePageToMarkdown, resolvePageFilePath, resolveSourceLocalFilePath } from './markdown.ts';
@@ -96,6 +96,35 @@ export interface WritePageThroughOpts {
   /** Merged over the page's own frontmatter at render time (e.g. provenance). */
   frontmatterOverrides?: Record<string, unknown>;
   logger?: WriteThroughLogger;
+}
+
+/**
+ * Return targetPath with already-existing directory segments re-cased to
+ * match the filesystem. The final filename is deliberately left untouched:
+ * the collision guard must still reject distinct DB slugs such as FOO and foo
+ * that fold to the same Windows/macOS filename.
+ */
+function resolveExistingPathCasing(targetPath: string): string {
+  const root = parse(targetPath).root;
+  const parts = targetPath.slice(root.length).split(/[\\/]+/).filter(Boolean);
+  let current = root;
+  for (const [index, part] of parts.entries()) {
+    if (index === parts.length - 1) return current ? join(current, part) : part;
+    const parent = current || '.';
+    let chosen = part;
+    try {
+      if (existsSync(parent) && statSync(parent).isDirectory()) {
+        const entries = readdirSync(parent);
+        chosen = entries.find((entry) => entry === part)
+          ?? entries.find((entry) => entry.toLocaleLowerCase() === part.toLocaleLowerCase())
+          ?? part;
+      }
+    } catch {
+      chosen = part;
+    }
+    current = current ? join(current, chosen) : chosen;
+  }
+  return targetPath;
 }
 
 /**
@@ -336,6 +365,10 @@ export async function resolvePageWriteTarget(
     scanRoot = pageRoot;
   }
 
+  // Keep existing directory names' filesystem casing on Windows/macOS while
+  // leaving the final filename untouched for the collision guard below.
+  filePath = resolveExistingPathCasing(filePath);
+
   // Defense-in-depth (#1647-slug / codex #6): confirm the computed file path
   // stays within the source's working tree before any mkdir/write. validateSlug
   // already rejects `..`/backslash/control/%2e in the slug at write time, so
@@ -422,7 +455,17 @@ export async function writePageThrough(
     const tmpPath = `${filePath}.tmp.${process.pid}.${randomBytes(4).toString('hex')}`;
     try {
       writeFileSync(tmpPath, md, 'utf8');
-      renameSync(tmpPath, filePath);
+      try {
+        renameSync(tmpPath, filePath);
+      } catch (renameErr) {
+        const code = (renameErr as NodeJS.ErrnoException).code;
+        if (process.platform === 'win32' && existsSync(filePath) && (code === 'EPERM' || code === 'EACCES')) {
+          copyFileSync(tmpPath, filePath);
+          unlinkSync(tmpPath);
+        } else {
+          throw renameErr;
+        }
+      }
     } catch (writeErr) {
       try {
         if (existsSync(tmpPath)) unlinkSync(tmpPath);
