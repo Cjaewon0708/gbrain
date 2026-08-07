@@ -6,6 +6,7 @@
  */
 
 import { listRecipes, getRecipe } from '../core/ai/recipes/index.ts';
+import { embeddingDimsForModel } from '../core/ai/model-resolver.ts';
 import { configureGateway, embedOne, isAvailable as gwIsAvailable, chat as gwChat } from '../core/ai/gateway.ts';
 import { buildGatewayConfig } from '../core/ai/build-gateway-config.ts';
 import { probeOllama, probeLMStudio } from '../core/ai/probes.ts';
@@ -293,7 +294,10 @@ async function runTest(args: string[]): Promise<void> {
     // null on first-time install, matching the old behavior for that case).
     const baseGatewayConfig = cfg ? buildGatewayConfig(cfg) : { env: { ...process.env } };
     if (tpArg === 'embedding') {
-      const dims = recipe?.touchpoints.embedding?.default_dims ?? 1536;
+      // Use the selected model's declared native width, not the recipe-wide
+      // fallback (for example, Ollama's mxbai-embed-large is 1024d while
+      // the recipe default is nomic-embed-text's 768d).
+      const dims = recipe ? embeddingDimsForModel(recipe, modelArg) : 1536;
       configureGateway({
         ...baseGatewayConfig,
         embedding_model: modelArg,
