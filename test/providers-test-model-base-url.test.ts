@@ -104,4 +104,15 @@ describe('providers test --model — provider_base_urls (#2863)', () => {
 
     expect(capturedUrl.startsWith(CUSTOM_BASE_URL)).toBe(true);
   });
+
+  test('embedding probe uses an Ollama model-specific width instead of its recipe default', async () => {
+    fetchHandler = async () => okEmbeddingResponse(1024);
+
+    await withEnv(
+      { GBRAIN_HOME: tmpHome, OLLAMA_BASE_URL: CUSTOM_BASE_URL },
+      async () => {
+        await runProviders('test', ['--touchpoint', 'embedding', '--model', 'ollama:mxbai-embed-large']);
+      },
+    );
+  });
 });
