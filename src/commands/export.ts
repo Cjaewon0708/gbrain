@@ -22,6 +22,9 @@ export async function runExport(engine: BrainEngine, args: string[]) {
   const slugPrefixIdx = args.indexOf('--slug-prefix');
   const slugPrefix = slugPrefixIdx !== -1 ? args[slugPrefixIdx + 1] : undefined;
 
+  const sourceIdIdx = args.indexOf('--source-id');
+  const sourceId = sourceIdIdx !== -1 ? args[sourceIdIdx + 1] : undefined;
+
   const restoreOnly = args.includes('--restore-only');
 
   // Resolution chain (D5): explicit --repo → typed sources.getDefault() →
@@ -64,6 +67,7 @@ export async function runExport(engine: BrainEngine, args: string[]) {
   const filters: import('../core/types.ts').PageFilters = { limit: 100000 };
   if (typeFilter) filters.type = typeFilter;
   if (slugPrefix) filters.slugPrefix = slugPrefix;
+  if (sourceId) filters.sourceId = sourceId;
 
   let pages: import('../core/types.ts').Page[];
 

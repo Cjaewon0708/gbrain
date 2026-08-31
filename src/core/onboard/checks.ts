@@ -387,8 +387,8 @@ export async function checkTimelineCoverage(
  * takes_count: number of takes (typed claims) in the brain.
  *
  * Per A12 two-gate consent: the remediation only emits when
- * `takes.bootstrap_enabled` config is true. Otherwise the check shows
- * a status + hint, but no autopilot-eligible remediation.
+ * `takes.bootstrap_enabled` config is true. Otherwise the optional feature is
+ * explicitly off, so the check remains healthy and emits no remediation.
  */
 export async function checkTakesCount(
   engine: BrainEngine,
@@ -413,8 +413,8 @@ export async function checkTakesCount(
   if (takesCount >= 100) {
     message = `${takesCount} takes (calibration ready)`;
   } else if (takesCount === 0) {
-    status = 'warn';
     if (bootstrapEnabled) {
+      status = 'warn';
       message = `0 takes (bootstrap eligible — gbrain takes extract --from-pages)`;
       remediations.push(makeRemediationStep({
         id: 'onboard.takes_bootstrap',
@@ -428,7 +428,7 @@ export async function checkTakesCount(
         status: 'remediable',
       }));
     } else {
-      message = '0 takes (takes.bootstrap_enabled is false; opt in to enable)';
+      message = '0 takes (takes bootstrap is disabled; optional feature not enabled)';
     }
   } else {
     message = `${takesCount} takes (calibration usable; >100 ideal)`;

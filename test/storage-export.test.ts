@@ -147,6 +147,24 @@ describe('export --restore-only resolution chain (D5)', () => {
     expect(exitCode).toBeNull();
     expect(stdout.some((line) => line.includes('Exporting 0'))).toBe(true);
   });
+
+  test('scopes regular export to one source when --source-id is supplied', async () => {
+    await engine.executeRaw(
+      `INSERT INTO sources (id, name) VALUES ('obsidian-work', 'Obsidian Work')`,
+    );
+    await engine.putPage('shared/entry', {
+      type: 'note', title: 'Default copy', compiled_truth: 'default source content', timeline: '', frontmatter: {},
+    }, { sourceId: 'default' });
+    await engine.putPage('shared/entry', {
+      type: 'note', title: 'Work copy', compiled_truth: 'work source content', timeline: '', frontmatter: {},
+    }, { sourceId: 'obsidian-work' });
+
+    await tryRunExport(['--dir', outDir, '--slug-prefix', 'shared/entry', '--source-id', 'obsidian-work']);
+
+    expect(exitCode).toBeNull();
+    expect(stdout.some((line) => line.includes('Exporting 1'))).toBe(true);
+    expect(readFileSync(join(outDir, 'shared', 'entry.md'), 'utf8')).toContain('work source content');
+  });
 });
 
 describe('export sidecar reads are scoped to the page owning source', () => {

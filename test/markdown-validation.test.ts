@@ -160,6 +160,12 @@ body`;
       expect(parsed.errors!.map(e => e.code)).not.toContain('NESTED_QUOTES');
     });
 
+    test('folded scalar prose with quoted examples does not masquerade as a YAML key', () => {
+      const md = `${fence}\ndescription: >\n  Trigger: "delegate to subagent", "use cavecrew", "spawn reviewer".\n${fence}\n\nbody`;
+      const parsed = parseMarkdown(md, undefined, { validate: true });
+      expect(parsed.errors!.map(e => e.code)).not.toContain('NESTED_QUOTES');
+    });
+
     test('clean title does not trigger', () => {
       const md = `${fence}\ntype: concept\ntitle: "Just a normal title"\n${fence}\n\nbody`;
       const parsed = parseMarkdown(md, undefined, { validate: true });

@@ -560,6 +560,12 @@ describe('assessProse', () => {
     const r = assessProse(nav);
     expect(r.markup_ratio).toBeGreaterThan(DEFAULT_MAX_MARKUP_RATIO);
   });
+  test('reference table with descriptive cells is not mistaken for a navigation blob', () => {
+    const row = '| Weather API | Provides short-term weather observations and forecasts for local applications | REST |\n';
+    const table = '| API | Description | Type |\n| --- | --- | --- |\n' + row.repeat(200);
+    const r = assessProse(table);
+    expect(r.markup_ratio).toBeLessThan(DEFAULT_MAX_MARKUP_RATIO);
+  });
   test('code excluded from denominator — code-heavy doc is NOT high markup', () => {
     const codeDoc = 'Here is the function:\n\n```ts\n' + 'const x = compute(a, b, c);\n'.repeat(200) + '```\n\nThat is how it works.';
     const r = assessProse(codeDoc);

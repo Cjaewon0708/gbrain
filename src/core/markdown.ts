@@ -437,7 +437,10 @@ function collectValidationErrors(
   //    parse error is caught separately by check 6 (YAML_PARSE) below.
   for (let i = firstNonEmpty + 1; i < closeLine; i++) {
     const line = lines[i];
-    const m = line.match(/^\s*[A-Za-z_][\w-]*\s*:\s*(.*)$/);
+    // Only inspect top-level mapping entries. Indented lines can be folded or
+    // literal scalar content (for example a `description: >` continuation)
+    // and a colon-plus-quote inside prose is not a YAML key/value pair.
+    const m = line.match(/^[A-Za-z_][\w-]*\s*:\s*(.*)$/);
     if (!m) continue;
     const value = m[1];
     let count = 0;

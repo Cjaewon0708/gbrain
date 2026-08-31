@@ -247,6 +247,10 @@ describe('KNOWN_CONFIG_KEYS — documented enable commands must be registered', 
     expect(KNOWN_CONFIG_KEYS).toContain('auto_chronicle');
     // The takes bootstrap two-gate consent flag (v0.41.18.0 A12).
     expect(KNOWN_CONFIG_KEYS).toContain('takes.bootstrap_enabled');
+    // Per-brain orphan exclusions are documented configuration, not
+    // --force-only escape hatches.
+    expect(KNOWN_CONFIG_KEYS).toContain('orphans.exclude_prefixes');
+    expect(KNOWN_CONFIG_KEYS).toContain('orphans.exclude_slugs');
     // chronicle.tz (chronicleTz) + future chronicle.* knobs.
     expect(KNOWN_CONFIG_KEY_PREFIXES.some(p => 'chronicle.tz'.startsWith(p))).toBe(true);
   });

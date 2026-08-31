@@ -285,8 +285,11 @@ const MD_IMAGE_RE = /!\[[^\]]*\]\([^)]*\)/g;
 // Keep anchor text, drop the URL: [text](url) -> text
 const MD_LINK_RE = /\[([^\]]*)\]\([^)]*\)/g;
 // Line-leading structural markers: headings, list bullets, blockquotes,
-// table pipes/separators, hr rules, emphasis runs.
-const MD_STRUCT_RE = /^[ \t]*(#{1,6}\s|[-*+]\s|>\s|\|.*\||[-=]{3,}\s*$|\d+\.\s)/gm;
+// horizontal rules, emphasis runs. Table ROWS are deliberately not stripped:
+// their cells often carry the useful reference text (API catalogues, feature
+// matrices, comparison notes). Only the separator row is syntax-only.
+const MD_STRUCT_RE = /^[ \t]*(#{1,6}\s|[-*+]\s|>\s|[-=]{3,}\s*$|\d+\.\s)/gm;
+const MD_TABLE_SEPARATOR_RE = /^[ \t]*\|?(?:\s*:?-{3,}:?\s*\|)+\s*$/gm;
 const MD_EMPHASIS_RE = /[*_~]{1,3}/g;
 const TABLE_PIPE_RE = /\|/g;
 
@@ -313,6 +316,7 @@ export function assessProse(body: string): ProseAssessment {
     .replace(MD_LINK_RE, '$1')
     .replace(HTML_TAG_RE, ' ')
     .replace(MD_STRUCT_RE, ' ')
+    .replace(MD_TABLE_SEPARATOR_RE, ' ')
     .replace(TABLE_PIPE_RE, ' ')
     .replace(MD_EMPHASIS_RE, ' ');
   const prose_chars = prose.replace(/\s+/g, '').length;

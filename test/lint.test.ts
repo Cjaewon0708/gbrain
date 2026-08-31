@@ -85,6 +85,29 @@ describe('lintContent', () => {
     expect(issues.some(i => i.rule === 'no-frontmatter')).toBe(true);
   });
 
+  test('mixed-content policy keeps syntax checks but permits plain Markdown and optional metadata', () => {
+    const plain = '# Reference copy\n\nContent without frontmatter.';
+    const plainIssues = lintContent(plain, 'reference.md', {
+      frontmatter: { require_frontmatter: false, required_fields: [] },
+    });
+    expect(plainIssues.some(i => i.rule === 'no-frontmatter')).toBe(false);
+
+    const metadata = '---\ntitle: Note\n---\n\n# Note\n\nBody.';
+    const metadataIssues = lintContent(metadata, 'note.md', {
+      frontmatter: { require_frontmatter: false, required_fields: [] },
+    });
+    expect(metadataIssues.some(i => i.rule === 'missing-type' || i.rule === 'missing-created')).toBe(false);
+  });
+
+  test('mixed-content policy can omit advisory template checks without hiding syntax findings', () => {
+    const content = '---\ntitle: T\n---\n\n# T\n\n## Summary\n\n[No data yet]\n\nDate: YYYY-MM-DD';
+    const issues = lintContent(content, 'template.md', {
+      ignore_rules: ['placeholder-date', 'empty-section'],
+    });
+    expect(issues.some(i => i.rule === 'placeholder-date' || i.rule === 'empty-section')).toBe(false);
+    expect(issues.some(i => i.rule === 'missing-type')).toBe(true);
+  });
+
   test('detects empty sections', () => {
     const content = '---\ntitle: Test\ntype: person\ncreated: 2026-04-11\n---\n\n# Test\n\n## What They Believe\n\n[No data yet]\n\n## State\n\nReal content here.';
     const issues = lintContent(content, 'test.md');

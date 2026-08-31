@@ -77,6 +77,16 @@ const LLM_PREAMBLES = [
  * via the file/env/DB precedence chain and pass through.
  */
 export interface LintContentOpts {
+  /** Optional frontmatter policy for mixed-content sources. Syntax validation
+   * remains enabled; callers can make frontmatter absent or selected metadata
+   * fields optional without disabling malformed-frontmatter findings. */
+  frontmatter?: {
+    require_frontmatter?: boolean;
+    required_fields?: ReadonlyArray<'title' | 'type' | 'created'>;
+  };
+  /** Rule names to suppress for a scoped lint run. Intended for advisory
+   * template findings; syntax findings remain unless explicitly listed. */
+  ignore_rules?: ReadonlyArray<string>;
   /** v0.41 content-sanity thresholds + operator literals. When omitted,
    *  the assessor uses its built-in defaults (50K warn, 500K block,
    *  built-in junk patterns only). */
@@ -159,26 +169,29 @@ export function lintContent(content: string, filePath: string, opts: LintContent
     }
   }
 
-  // Rule: Missing frontmatter
+  // Rule: Missing frontmatter. Mixed-content sources can make absence and/or
+  // selected metadata fields optional without suppressing parser syntax checks.
+  const frontmatterPolicy = opts.frontmatter ?? {};
+  const requiredFields = new Set(frontmatterPolicy.required_fields ?? ['title', 'type', 'created']);
   if (content.startsWith('---')) {
     const fmEnd = content.indexOf('---', 3);
     if (fmEnd > 0) {
       const fm = content.slice(3, fmEnd);
-      if (!fm.match(/^title:/m)) {
+      if (requiredFields.has('title') && !fm.match(/^title:/m)) {
         issues.push({
           file: filePath, line: 1, rule: 'missing-title',
           message: 'Frontmatter missing required field: title',
           fixable: false,
         });
       }
-      if (!fm.match(/^type:/m)) {
+      if (requiredFields.has('type') && !fm.match(/^type:/m)) {
         issues.push({
           file: filePath, line: 1, rule: 'missing-type',
           message: 'Frontmatter missing required field: type',
           fixable: false,
         });
       }
-      if (!fm.match(/^created:/m)) {
+      if (requiredFields.has('created') && !fm.match(/^created:/m)) {
         // #3958: when the page's own frontmatter carries a capture timestamp
         // (captured_at / ingested_at), `--fix` can promote it to `created` —
         // mark the finding fixable so the operator knows --fix will heal it.
@@ -192,7 +205,7 @@ export function lintContent(content: string, filePath: string, opts: LintContent
         });
       }
     }
-  } else {
+  } else if (frontmatterPolicy.require_frontmatter !== false) {
     // No frontmatter at all
     issues.push({
       file: filePath, line: 1, rule: 'no-frontmatter',
@@ -297,7 +310,8 @@ export function lintContent(content: string, filePath: string, opts: LintContent
     }
   }
 
-  return issues;
+  const ignoredRules = new Set(opts.ignore_rules ?? []);
+  return ignoredRules.size === 0 ? issues : issues.filter((issue) => !ignoredRules.has(issue.rule));
 }
 
 /**

@@ -89,12 +89,8 @@ export interface ParsedFrontmatter {
  * `readFileSync(path, 'utf-8')` at the boundary.
  */
 export function parseSkillFrontmatter(content: string): ParsedFrontmatter | null {
-  const normalized = content.replace(/
-/g, '
-');
-  const fmMatch = normalized.match(/^---
-([\s\S]*?)
----/);
+  const normalized = content.replace(/\r\n/g, '\n');
+  const fmMatch = normalized.match(/^---\n([\s\S]*?)\n---/);
   if (!fmMatch) return null;
   const raw = fmMatch[1];
   const out: ParsedFrontmatter = { raw };
